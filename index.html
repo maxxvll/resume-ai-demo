@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能简历筛选系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-blue-600 mb-2">🚀 AI 简历助手</h1>
+            <p class="text-slate-500">基于阿里云 Serverless + 通义千问</p>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <div class="mb-4">
+                <label class="block text-sm font-bold mb-2">1. 上传简历 (PDF)</label>
+                <input type="file" id="pdfInput" accept="application/pdf" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-bold mb-2">2. 输入岗位要求 (可选，用于匹配)</label>
+                <textarea id="jobDesc" rows="3" class="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="例如：要求3年以上Python经验，熟悉FastAPI..."></textarea>
+            </div>
+
+            <button onclick="handleAnalyze()" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition duration-200 flex items-center justify-center gap-2">
+                <span id="btnText">开始解析</span>
+                <svg id="loadingIcon" class="hidden animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            </button>
+        </div>
+
+        <!-- 结果区域 -->
+        <div id="resultArea" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white p-6 rounded-2xl shadow-lg text-center border-t-4 border-green-500">
+                    <div class="text-sm text-slate-500 mb-1">匹配度</div>
+                    <div class="text-4xl font-bold text-green-600" id="scoreDisplay">0</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-blue-500">
+                    <div class="text-sm text-slate-500 mb-1">候选人</div>
+                    <div class="text-2xl font-bold text-slate-800" id="nameDisplay">-</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-purple-500">
+                    <div class="text-sm text-slate-500 mb-1">联系电话</div>
+                    <div class="text-xl font-bold text-slate-800" id="phoneDisplay">-</div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h3 class="font-bold text-lg mb-4">详细解析数据</h3>
+                <pre id="jsonDisplay" class="bg-slate-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 【重要】这里替换为你刚刚部署成功的 URL，注意结尾不要加斜杠
+        const API_URL = "https://resume-parser-kpfnsudlzw.cn-hangzhou.fcapp.run/analyze";
+
+        async function handleAnalyze() {
+            const fileInput = document.getElementById('pdfInput');
+            const jobDesc = document.getElementById('jobDesc').value;
+            const btnText = document.getElementById('btnText');
+            const loadingIcon = document.getElementById('loadingIcon');
+            const resultArea = document.getElementById('resultArea');
+
+            if (!fileInput.files[0]) {
+                alert("请先选择文件！");
+                return;
+            }
+
+            // UI 状态更新
+            btnText.innerText = "AI 分析中...";
+            loadingIcon.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append("resume", fileInput.files[0]);
+            formData.append("job_description", jobDesc);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('scoreDisplay').innerText = result.match_score;
+                    document.getElementById('nameDisplay').innerText = result.data.name || '未知';
+                    document.getElementById('phoneDisplay').innerText = result.data.phone || '未知';
+                    document.getElementById('jsonDisplay').innerText = JSON.stringify(result.data, null, 2);
+                    resultArea.classList.remove('hidden');
+                } else {
+                    alert("解析失败");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("请求错误，请检查控制台");
+            } finally {
+                btnText.innerText = "开始解析";
+                loadingIcon.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
