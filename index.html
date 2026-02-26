@@ -1,236 +1,282 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI简历助手</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能简历筛选系统 - Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen p-8">
-    <div class="max-w-4xl mx-auto">
-      <div class="text-center mb-10">
-        <div
-          class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4"
-        >
-          <span class="text-3xl">🚀</span>
-        </div>
-        <h1 class="text-4xl font-bold text-slate-800 mb-2">AI 简历助手</h1>
-        <p class="text-slate-500">基于阿里云 Serverless + 通义千问</p>
-        <div
-          id="serviceStatus"
-          class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium"
-        >
-          <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-          后端服务运行正常
-        </div>
-      </div>
-
-      <!-- 输入区域 -->
-      <div
-        class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-slate-100"
-      >
-        <div class="mb-6">
-          <label class="block text-sm font-bold text-slate-700 mb-2"
-            >📄 上传简历 (PDF)</label
-          >
-          <div class="flex items-center justify-center w-full">
-            <label
-              for="pdfInput"
-              class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition"
-            >
-              <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                <svg
-                  class="w-8 h-8 mb-4 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  ></path>
-                </svg>
-                <p class="mb-2 text-sm text-slate-500">
-                  <span class="font-semibold">点击上传</span> 或拖拽文件到这里
-                </p>
-                <p class="text-xs text-slate-400">支持 PDF 格式</p>
-              </div>
-              <input
-                id="pdfInput"
-                type="file"
-                class="hidden"
-                accept="application/pdf"
-              />
-            </label>
-          </div>
-          <p
-            id="fileName"
-            class="mt-2 text-sm text-blue-600 font-medium hidden"
-          ></p>
-        </div>
-
-        <div class="mb-8">
-          <label class="block text-sm font-bold text-slate-700 mb-2"
-            >💼 岗位要求 (可选)</label
-          >
-          <textarea
-            id="jobDesc"
-            rows="3"
-            class="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition"
-            placeholder="例如：要求3年以上Python经验，熟悉FastAPI，有阿里云开发经验..."
-          ></textarea>
-        </div>
-
-        <button
-          onclick="handleAnalyze()"
-          id="submitBtn"
-          class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-3"
-        >
-          <span id="btnText">开始解析</span>
-          <svg
-            id="loadingIcon"
-            class="hidden animate-spin h-5 w-5 text-white"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-        </button>
-      </div>
-
-      <!-- 结果区域 -->
-      <div id="resultArea" class="hidden">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div
-            class="bg-white p-6 rounded-2xl shadow-lg text-center border-t-4 border-blue-500 transform hover:scale-105 transition"
-          >
-            <div class="text-sm text-slate-500 mb-1">候选人</div>
-            <div class="text-2xl font-bold text-slate-800" id="nameDisplay">
-              --
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1); }
+        .score-ring {
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <!-- 顶部导航 -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center text-white font-bold text-xl">AI</div>
+                    <span class="text-xl font-bold text-slate-800">智能简历筛选系统</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span id="statusBadge" class="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        服务就绪
+                    </span>
+                </div>
             </div>
-          </div>
-          <div
-            class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-purple-500 transform hover:scale-105 transition"
-          >
-            <div class="text-sm text-slate-500 mb-1">联系电话</div>
-            <div class="text-xl font-bold text-slate-800" id="phoneDisplay">
-              --
-            </div>
-          </div>
-          <div
-            class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-green-500 transform hover:scale-105 transition"
-          >
-            <div class="text-sm text-slate-500 mb-1">邮箱</div>
-            <div class="text-lg font-bold text-slate-800" id="emailDisplay">
-              --
-            </div>
-          </div>
         </div>
+    </nav>
 
-        <div class="bg-white rounded-2xl shadow-lg p-8">
-          <h3 class="font-bold text-lg mb-6 flex items-center gap-3">
-            <span class="w-1.5 h-6 bg-blue-600 rounded-full"></span>
-            完整解析结果
-          </h3>
-          <pre
-            id="jsonDisplay"
-            class="bg-slate-900 text-green-400 p-6 rounded-xl overflow-x-auto text-sm leading-relaxed"
-          ></pre>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <!-- 主内容区 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- 左侧：上传区域 -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-white rounded-2xl p-6 card-shadow border border-slate-100">
+                    <h2 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        上传简历
+                    </h2>
+                    
+                    <!-- 文件拖拽区 -->
+                    <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/50 transition-all duration-200">
+                        <input type="file" id="pdfInput" class="hidden" accept="application/pdf">
+                        <div id="uploadPrompt">
+                            <svg class="w-12 h-12 mx-auto text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                            <p class="text-slate-600 font-medium">点击或拖拽上传</p>
+                            <p class="text-slate-400 text-sm mt-1">支持 PDF 格式</p>
+                        </div>
+                        <div id="fileInfo" class="hidden">
+                            <div class="w-12 h-12 mx-auto bg-indigo-100 rounded-xl flex items-center justify-center mb-4">
+                                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            </div>
+                            <p id="selectedFileName" class="text-slate-800 font-medium truncate"></p>
+                            <button onclick="clearFile()" class="text-indigo-600 text-sm mt-2 hover:underline">重新选择</button>
+                        </div>
+                    </div>
+
+                    <!-- 岗位需求 -->
+                    <div class="mt-6">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">岗位需求 (用于匹配)</label>
+                        <textarea id="jobDesc" rows="4" class="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition resize-none" placeholder="例如：要求3年以上Java开发经验，熟悉Spring Cloud、MySQL，有大数据处理经验优先..."></textarea>
+                    </div>
+
+                    <!-- 提交按钮 -->
+                    <button onclick="handleAnalyze()" id="submitBtn" class="w-full mt-6 gradient-bg text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl hover:opacity-90 transition-all duration-200 flex items-center justify-center gap-3">
+                        <span id="btnText">开始智能解析</span>
+                        <svg id="loadingIcon" class="hidden animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 右侧：结果展示 -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- 顶部：匹配度仪表盘 -->
+                <div id="resultArea" class="hidden animate-fade-in">
+                    <div class="bg-white rounded-2xl p-8 card-shadow border border-slate-100 mb-6">
+                        <div class="flex flex-col md:flex-row items-center gap-8">
+                            <!-- 分数圆环 -->
+                            <div class="relative w-40 h-40 flex-shrink-0">
+                                <svg class="w-full h-full" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" stroke-width="8"/>
+                                    <circle id="scoreCircle" class="score-ring" cx="50" cy="50" r="45" fill="none" stroke="url(#gradient)" stroke-width="8" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/>
+                                    <defs>
+                                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stop-color="#667eea"/>
+                                            <stop offset="100%" stop-color="#764ba2"/>
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span id="scoreDisplay" class="text-4xl font-bold text-slate-800">0</span>
+                                    <span class="text-slate-500 text-sm">匹配度</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 基本信息 -->
+                            <div class="flex-1 w-full">
+                                <h3 class="text-xl font-bold text-slate-800 mb-4">候选人概览</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-slate-50 p-4 rounded-xl">
+                                        <p class="text-slate-500 text-xs uppercase tracking-wider mb-1">姓名</p>
+                                        <p id="nameDisplay" class="text-lg font-bold text-slate-800">--</p>
+                                    </div>
+                                    <div class="bg-slate-50 p-4 rounded-xl">
+                                        <p class="text-slate-500 text-xs uppercase tracking-wider mb-1">电话</p>
+                                        <p id="phoneDisplay" class="text-lg font-bold text-slate-800">--</p>
+                                    </div>
+                                    <div class="bg-slate-50 p-4 rounded-xl">
+                                        <p class="text-slate-500 text-xs uppercase tracking-wider mb-1">邮箱</p>
+                                        <p id="emailDisplay" class="text-lg font-bold text-slate-800 truncate">--</p>
+                                    </div>
+                                    <div class="bg-slate-50 p-4 rounded-xl">
+                                        <p class="text-slate-500 text-xs uppercase tracking-wider mb-1">最高学历</p>
+                                        <p id="educationDisplay" class="text-lg font-bold text-slate-800">--</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 详细数据 -->
+                    <div class="bg-white rounded-2xl p-8 card-shadow border border-slate-100">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-bold text-slate-800">完整解析数据</h3>
+                            <span id="cacheBadge" class="hidden px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">来自缓存</span>
+                        </div>
+                        <pre id="jsonDisplay" class="bg-slate-900 text-green-400 p-6 rounded-xl overflow-x-auto text-sm leading-relaxed"></pre>
+                    </div>
+                </div>
+
+                <!-- 空状态 -->
+                <div id="emptyState" class="bg-white rounded-2xl p-12 card-shadow border border-slate-100 text-center">
+                    <div class="w-24 h-24 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                        <svg class="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">等待上传简历</h3>
+                    <p class="text-slate-500">上传一份 PDF 简历，系统将自动解析并计算岗位匹配度</p>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
 
     <script>
-      // 【重要】替换为你的阿里云后端接口地址
-      const API_URL =
-        'https://resume-parser-kpfnsudlzw.cn-hangzhou.fcapp.run/analyze'
+        // ========== 配置 ==========
+        const API_URL = "https://resume-parser-kpfnsudlzw.cn-hangzhou.fcapp.run/analyze";
 
-      // 文件选择监听
-      document
-        .getElementById('pdfInput')
-        .addEventListener('change', function (e) {
-          if (e.target.files.length > 0) {
-            document.getElementById('fileName').textContent =
-              '已选择: ' + e.target.files[0].name
-            document.getElementById('fileName').classList.remove('hidden')
-          }
-        })
+        // ========== 交互逻辑 ==========
+        const dropZone = document.getElementById('dropZone');
+        const pdfInput = document.getElementById('pdfInput');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const fileInfo = document.getElementById('fileInfo');
+        const selectedFileName = document.getElementById('selectedFileName');
 
-      // 解析函数
-      async function handleAnalyze() {
-        const fileInput = document.getElementById('pdfInput')
-        const jobDesc = document.getElementById('jobDesc').value
-        const btnText = document.getElementById('btnText')
-        const loadingIcon = document.getElementById('loadingIcon')
-        const resultArea = document.getElementById('resultArea')
+        // 点击上传
+        dropZone.addEventListener('click', () => pdfInput.click());
+        
+        // 文件选择
+        pdfInput.addEventListener('change', handleFileSelect);
 
-        // 校验文件
-        if (!fileInput.files[0]) {
-          alert('请先选择简历文件！')
-          return
+        // 拖拽上传
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-indigo-500', 'bg-indigo-50'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-indigo-500', 'bg-indigo-50'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+            if (e.dataTransfer.files.length) {
+                pdfInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+
+        function handleFileSelect() {
+            if (pdfInput.files.length > 0) {
+                selectedFileName.textContent = pdfInput.files[0].name;
+                uploadPrompt.classList.add('hidden');
+                fileInfo.classList.remove('hidden');
+            }
         }
 
-        // 更新UI状态
-        btnText.innerText = 'AI 分析中...'
-        loadingIcon.classList.remove('hidden')
-        resultArea.classList.add('hidden')
-
-        // 构建表单数据
-        const formData = new FormData()
-        formData.append('resume', fileInput.files[0])
-        formData.append('job_description', jobDesc)
-
-        try {
-          // 调用后端接口
-          const response = await fetch(API_URL, {
-            method: 'POST',
-            body: formData,
-          })
-
-          const result = await response.json()
-
-          if (result.success) {
-            // 填充结果
-            const data = result.data
-            document.getElementById('nameDisplay').innerText =
-              data.name || '未知'
-            document.getElementById('phoneDisplay').innerText =
-              data.phone || '未知'
-            document.getElementById('emailDisplay').innerText =
-              data.email || '未知'
-            document.getElementById('jsonDisplay').innerText = JSON.stringify(
-              data,
-              null,
-              2,
-            )
-            resultArea.classList.remove('hidden')
-          } else {
-            alert('解析失败：' + result.message)
-          }
-        } catch (err) {
-          console.error(err)
-          alert('请求失败，请检查后端服务是否正常')
-        } finally {
-          // 恢复UI状态
-          btnText.innerText = '开始解析'
-          loadingIcon.classList.add('hidden')
+        function clearFile() {
+            pdfInput.value = '';
+            uploadPrompt.classList.remove('hidden');
+            fileInfo.classList.add('hidden');
         }
-      }
+
+        // ========== 核心解析函数 ==========
+        async function handleAnalyze() {
+            if (!pdfInput.files[0]) {
+                alert("请先选择简历文件！");
+                return;
+            }
+
+            // UI 状态
+            const btnText = document.getElementById('btnText');
+            const loadingIcon = document.getElementById('loadingIcon');
+            const resultArea = document.getElementById('resultArea');
+            const emptyState = document.getElementById('emptyState');
+
+            btnText.innerText = "AI 分析中...";
+            loadingIcon.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+            emptyState.classList.add('hidden');
+
+            // 构建请求
+            const formData = new FormData();
+            formData.append("resume", pdfInput.files[0]);
+            formData.append("job_description", document.getElementById('jobDesc').value);
+
+            try {
+                const response = await fetch(API_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (result.success) {
+                    // 渲染数据
+                    const data = result.data;
+                    document.getElementById('nameDisplay').innerText = data.name || '未知';
+                    document.getElementById('phoneDisplay').innerText = data.phone || '未知';
+                    document.getElementById('emailDisplay').innerText = data.email || '未知';
+                    document.getElementById('educationDisplay').innerText = data.education || '未知';
+                    document.getElementById('jsonDisplay').innerText = JSON.stringify(data, null, 2);
+                    
+                    // 动画显示分数
+                    const score = Math.round(result.match_score);
+                    animateScore(score);
+
+                    // 缓存标记
+                    if (result.from_cache) {
+                        document.getElementById('cacheBadge').classList.remove('hidden');
+                    } else {
+                        document.getElementById('cacheBadge').classList.add('hidden');
+                    }
+
+                    resultArea.classList.remove('hidden');
+                } else {
+                    alert("解析失败：" + result.message);
+                    emptyState.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                alert("请求失败，请检查网络或后端服务");
+                emptyState.classList.remove('hidden');
+            } finally {
+                btnText.innerText = "开始智能解析";
+                loadingIcon.classList.add('hidden');
+            }
+        }
+
+        function animateScore(targetScore) {
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            const scoreCircle = document.getElementById('scoreCircle');
+            let current = 0;
+            
+            const duration = 1000;
+            const step = targetScore / (duration / 16);
+            
+            const timer = setInterval(() => {
+                current += step;
+                if (current >= targetScore) {
+                    current = targetScore;
+                    clearInterval(timer);
+                }
+                scoreDisplay.innerText = Math.round(current);
+                // 圆环动画 (283 is circumference)
+                const offset = 283 - (283 * current / 100);
+                scoreCircle.style.strokeDashoffset = offset;
+            }, 16);
+        }
     </script>
-  </body>
+</body>
 </html>
