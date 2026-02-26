@@ -3,6 +3,928 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能简历筛选系统 - Pro Ultra</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- 引入 ECharts 用于词云 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass { backdrop-filter: blur(10px); }
+        .score-ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .toast { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        /* 滚动条美化 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        
+        /* 星级评分 */
+        .star-rating { cursor: pointer; }
+        .star-rating .star { transition: color 0.1s, transform 0.1s; }
+        .star-rating .star:hover { transform: scale(1.2); }
+        
+        /* 标签样式 */
+        .tag { @apply px-2 py-1 rounded-full text-xs font-medium; }
+        
+        /* PDF预览容器 */
+        .pdf-container { background: #525659; }
+        .pdf-page { box-shadow: 0 0 8px rgba(0,0,0,0.5); margin: 10px auto; }
+        
+        /* 可编辑字段 */
+        .editable-field { position: relative; }
+        .editable-field:hover .edit-icon { opacity: 1; }
+        .edit-icon { opacity: 0; transition: opacity 0.2s; }
+        
+        /* 匹配度详情 */
+        .match-item { @apply flex items-start gap-2 py-1; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div id="app" class="flex h-screen overflow-hidden">
+        
+        <!-- 左侧：历史记录侧边栏 -->
+        <aside id="sidebar" class="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col hidden md:flex">
+            <div class="p-6 border-b border-slate-200 dark:border-slate-700">
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center text-white font-bold">AI</div>
+                    <div>
+                        <h1 class="font-bold text-lg">简历筛选系统</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Pro Ultra 2.0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-b border-slate-100 dark:border-slate-700 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500 uppercase">解析历史</span>
+                    <div class="flex gap-2">
+                        <select id="filterScore" onchange="loadHistory()" class="text-xs bg-slate-100 dark:bg-slate-700 rounded px-2 py-1 outline-none">
+                            <option value="0">全部</option>
+                            <option value="60">60分+</option>
+                            <option value="80">80分+</option>
+                            <option value="90">90分+</option>
+                        </select>
+                        <button onclick="clearHistory()" class="text-xs text-red-500 hover:text-red-600">清空</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="historyList" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <div class="text-center text-slate-400 text-sm py-8">暂无解析记录</div>
+            </div>
+        </aside>
+
+        <!-- 右侧：主内容区 -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- 顶部导航 -->
+            <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span class="text-sm font-medium">服务就绪</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleTheme()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">
+                        <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 内容滚动区 -->
+            <div class="flex-1 overflow-y-auto p-6 md:p-8">
+                <div class="max-w-7xl mx-auto">
+                    <!-- 标签页导航 -->
+                    <div class="flex gap-4 mb-6 border-b border-slate-200 dark:border-slate-700">
+                        <button onclick="switchTab('analyze')" id="tab-analyze" class="tab-btn pb-3 px-1 border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-medium text-sm">
+                            智能解析
+                        </button>
+                        <button onclick="switchTab('preview')" id="tab-preview" class="tab-btn pb-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 font-medium text-sm">
+                            简历预览
+                        </button>
+                    </div>
+
+                    <div id="panel-analyze" class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                        
+                        <!-- 左列：上传与输入 -->
+                        <div class="xl:col-span-4 space-y-6">
+                            <!-- 上传卡片 -->
+                            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                                <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    上传简历
+                                </h2>
+                                
+                                <div id="dropZone" class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-slate-700/50 transition-all">
+                                    <input type="file" id="pdfInput" class="hidden" accept="application/pdf">
+                                    <div id="uploadPrompt">
+                                        <svg class="w-12 h-12 mx-auto text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                                        <p class="font-medium">点击或拖拽上传</p>
+                                        <p class="text-sm text-slate-500 mt-1">PDF 格式</p>
+                                    </div>
+                                    <div id="fileInfo" class="hidden">
+                                        <div class="w-12 h-12 mx-auto bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center mb-4">
+                                            <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                        </div>
+                                        <p id="selectedFileName" class="font-medium truncate"></p>
+                                        <button onclick="clearFile()" class="text-indigo-600 dark:text-indigo-400 text-sm mt-2 hover:underline">重新选择</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 岗位需求 -->
+                            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h2 class="text-lg font-bold flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                        岗位需求
+                                    </h2>
+                                    <!-- 模板选择器 -->
+                                    <select id="jdTemplate" onchange="applyTemplate()" class="text-xs bg-slate-100 dark:bg-slate-700 rounded px-2 py-1.5 outline-none">
+                                        <option value="">选择模板...</option>
+                                        <option value="java_backend">Java后端</option>
+                                        <option value="frontend">前端开发</option>
+                                        <option value="product_manager">产品经理</option>
+                                    </select>
+                                </div>
+                                <textarea id="jobDesc" rows="6" class="w-full p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition resize-none" placeholder="例如：要求3年以上Java开发经验，熟悉Spring Cloud、MySQL、Redis，有高并发系统经验优先..."></textarea>
+                                
+                                <div class="mt-4 flex flex-wrap items-center gap-4">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" id="genAdvice" checked class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+                                        <span class="text-sm text-slate-600 dark:text-slate-400">生成面试建议</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" id="genDetailed" checked class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+                                        <span class="text-sm text-slate-600 dark:text-slate-400">详细分析</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 提交按钮 -->
+                            <button onclick="handleAnalyze()" id="submitBtn" class="w-full gradient-bg text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl hover:opacity-90 transition-all flex items-center justify-center gap-3">
+                                <span id="btnText">开始智能解析</span>
+                                <svg id="loadingIcon" class="hidden animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            </button>
+                        </div>
+
+                        <!-- 右列：结果展示 -->
+                        <div class="xl:col-span-8 space-y-6">
+                            
+                            <!-- 空状态 -->
+                            <div id="emptyState" class="bg-white dark:bg-slate-800 rounded-2xl p-12 shadow-sm border border-slate-200 dark:border-slate-700 text-center">
+                                <div class="w-24 h-24 mx-auto bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-6">
+                                    <svg class="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                </div>
+                                <h3 class="text-xl font-bold mb-2">等待上传简历</h3>
+                                <p class="text-slate-500 dark:text-slate-400">上传 PDF 简历，系统将自动解析、评分并生成详细分析</p>
+                            </div>
+
+                            <!-- 结果区 -->
+                            <div id="resultArea" class="hidden space-y-6 fade-in">
+                                
+                                <!-- 顶部仪表盘 -->
+                                <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <div class="flex flex-col md:flex-row items-center gap-8">
+                                        <!-- 分数圆环 -->
+                                        <div class="relative w-40 h-40 flex-shrink-0">
+                                            <svg class="w-full h-full" viewBox="0 0 100 100">
+                                                <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" stroke-width="8" class="dark:stroke-slate-700"/>
+                                                <circle id="scoreCircle" class="score-ring" cx="50" cy="50" r="45" fill="none" stroke="url(#gradient)" stroke-width="8" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/>
+                                                <defs>
+                                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                        <stop offset="0%" stop-color="#667eea"/>
+                                                        <stop offset="100%" stop-color="#764ba2"/>
+                                                    </linearGradient>
+                                                </defs>
+                                            </svg>
+                                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                                <span id="scoreDisplay" class="text-4xl font-bold">0</span>
+                                                <span class="text-slate-500 text-sm dark:text-slate-400">匹配度</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 基本信息 -->
+                                        <div class="flex-1 w-full">
+                                            <div class="flex items-center justify-between mb-4">
+                                                <h3 class="text-xl font-bold flex items-center gap-3">
+                                                    候选人概览
+                                                    <!-- 星级评分 -->
+                                                    <div class="star-rating flex gap-0.5" id="starRating">
+                                                        <span class="star text-2xl text-slate-300" data-star="1" onclick="setRating(1)">★</span>
+                                                        <span class="star text-2xl text-slate-300" data-star="2" onclick="setRating(2)">★</span>
+                                                        <span class="star text-2xl text-slate-300" data-star="3" onclick="setRating(3)">★</span>
+                                                        <span class="star text-2xl text-slate-300" data-star="4" onclick="setRating(4)">★</span>
+                                                        <span class="star text-2xl text-slate-300" data-star="5" onclick="setRating(5)">★</span>
+                                                    </div>
+                                                </h3>
+                                                <div class="flex items-center gap-2">
+                                                    <span id="cacheBadge" class="hidden px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded text-xs font-medium">来自缓存</span>
+                                                    <span id="timeBadge" class="px-2 py-1 bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 rounded text-xs font-medium"></span>
+                                                    <button onclick="exportResult()" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded" title="导出JSON">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl editable-field">
+                                                    <p class="text-slate-500 text-xs uppercase tracking-wider mb-1 dark:text-slate-400 flex justify-between">
+                                                        姓名
+                                                        <span class="edit-icon text-indigo-500 cursor-pointer" onclick="startEdit('name')">✏️</span>
+                                                    </p>
+                                                    <p id="nameDisplay" class="text-lg font-bold">--</p>
+                                                </div>
+                                                <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl editable-field">
+                                                    <p class="text-slate-500 text-xs uppercase tracking-wider mb-1 dark:text-slate-400 flex justify-between">
+                                                        电话
+                                                        <span class="edit-icon text-indigo-500 cursor-pointer" onclick="startEdit('phone')">✏️</span>
+                                                    </p>
+                                                    <p id="phoneDisplay" class="text-lg font-bold">--</p>
+                                                </div>
+                                                <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl">
+                                                    <p class="text-slate-500 text-xs uppercase tracking-wider mb-1 dark:text-slate-400">邮箱</p>
+                                                    <p id="emailDisplay" class="text-lg font-bold truncate">--</p>
+                                                </div>
+                                                <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl">
+                                                    <p class="text-slate-500 text-xs uppercase tracking-wider mb-1 dark:text-slate-400">学历</p>
+                                                    <p id="educationDisplay" class="text-lg font-bold">--</p>
+                                                </div>
+                                                <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl">
+                                                    <p class="text-slate-500 text-xs uppercase tracking-wider mb-1 dark:text-slate-400">工作年限</p>
+                                                    <p id="workYearsDisplay" class="text-lg font-bold">--</p>
+                                                </div>
+                                                <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl">
+                                                    <p class="text-slate-500 text-xs uppercase tracking-wider mb-1 dark:text-slate-400">期望薪资</p>
+                                                    <p id="salaryDisplay" class="text-lg font-bold">--</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 详细匹配度分析 (新增) -->
+                                <div id="analysisCard" class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0a2 2 0 01-2 2H5a2 2 0 01-2 2m12 0l-4 4m4-4l-4-4"></path></svg>
+                                        匹配度详细分析
+                                    </h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <h4 class="text-sm font-semibold text-green-600 dark:text-green-400 mb-2 flex items-center gap-2">
+                                                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                                                匹配亮点
+                                            </h4>
+                                            <div id="matchedPoints" class="space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                                                <p class="text-slate-400">暂无</p>
+                                            </div>
+                                            <div class="mt-3 flex flex-wrap gap-2" id="matchedSkills">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-semibold text-orange-600 dark:text-orange-400 mb-2 flex items-center gap-2">
+                                                <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
+                                                待提升 / 缺失
+                                            </h4>
+                                            <div id="missingPoints" class="space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                                                <p class="text-slate-400">暂无</p>
+                                            </div>
+                                            <div class="mt-3 flex flex-wrap gap-2" id="missingSkills">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                                        <h4 class="text-sm font-semibold text-slate-500 mb-2">建议</h4>
+                                        <div id="suggestions" class="text-sm text-slate-600 dark:text-slate-300"></div>
+                                    </div>
+                                </div>
+
+                                <!-- 技能词云 & 面试建议 -->
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <!-- 技能词云 -->
+                                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                                        <h3 class="font-bold mb-4">技能标签</h3>
+                                        <div id="wordCloud" style="width: 100%; height: 250px;"></div>
+                                    </div>
+
+                                    <!-- 面试建议 -->
+                                    <div id="adviceCard" class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6">
+                                        <div class="flex items-start gap-4">
+                                            <div class="w-10 h-10 bg-amber-100 dark:bg-amber-900/50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                                <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                                            </div>
+                                            <div class="flex-1">
+                                                <h4 class="font-bold text-amber-800 dark:text-amber-200 mb-2">AI 面试建议</h4>
+                                                <p id="evaluationText" class="text-amber-700 dark:text-amber-300 text-sm mb-4"></p>
+                                                <div>
+                                                    <p class="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase mb-2">推荐提问</p>
+                                                    <ul id="questionsList" class="list-disc list-inside text-sm text-amber-700 dark:text-amber-300 space-y-1"></ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 详细数据 (可折叠) -->
+                                <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <summary class="p-6 cursor-pointer font-bold flex items-center justify-between">
+                                        完整解析数据 (可编辑)
+                                        <span class="text-xs text-slate-400">点击展开</span>
+                                    </summary>
+                                    <div class="px-6 pb-6">
+                                        <div class="flex justify-end mb-2 gap-2">
+                                            <button onclick="saveEdits()" class="text-xs bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600">保存修改</button>
+                                        </div>
+                                        <textarea id="jsonEditor" class="w-full h-80 font-mono text-sm bg-slate-900 text-green-400 p-4 rounded-xl border border-slate-700"></textarea>
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PDF 预览面板 -->
+                    <div id="panel-preview" class="hidden">
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold">简历原文预览</h3>
+                                <div id="pdfControls" class="hidden flex items-center gap-2">
+                                    <button onclick="prevPage()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded disabled:opacity-50" id="prevBtn">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                                    </button>
+                                    <span class="text-sm" id="pageNum">1 / 1</span>
+                                    <button onclick="nextPage()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded disabled:opacity-50" id="nextBtn">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                    </button>
+                                    <select id="scaleSelect" onchange="renderPage()" class="ml-4 text-sm bg-slate-100 dark:bg-slate-700 rounded px-2 py-1">
+                                        <option value="0.5">50%</option>
+                                        <option value="0.75">75%</option>
+                                        <option value="1" selected>100%</option>
+                                        <option value="1.25">125%</option>
+                                        <option value="1.5">150%</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="previewPlaceholder" class="text-center py-20 text-slate-400">
+                                请先上传并解析简历以查看预览
+                            </div>
+                            <div id="pdfViewer" class="pdf-container hidden rounded-xl overflow-auto max-h-[70vh]">
+                                <canvas id="pdfCanvas" class="pdf-page"></canvas>
+                            </div>
+                            <div id="textPreview" class="hidden">
+                                <pre id="rawTextDisplay" class="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl text-sm whitespace-pre-wrap max-h-[70vh] overflow-auto"></pre>
+                            </div>
+                        </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 编辑弹窗 -->
+    <div id="editModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl w-96 shadow-xl">
+            <h3 class="font-bold mb-4">编辑字段</h3>
+            <input type="text" id="editInput" class="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 outline-none focus:ring-2 focus:ring-indigo-500">
+            <div class="flex justify-end gap-2 mt-4">
+                <button onclick="closeEditModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">取消</button>
+                <button onclick="saveFieldEdit()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <script>
+        // ========== 配置 ==========
+        const API_URL = "https://resume-parser-kpfnsudlzw.cn-hangzhou.fcapp.run";
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // ========== 状态管理 ==========
+        let currentResult = null;
+        let currentFileBytes = null;
+        let pdfDoc = null;
+        let pageNum = 1;
+        let editingField = null;
+        let wordCloudChart = null;
+
+        // ========== 初始化 ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initUpload();
+            loadHistory();
+            loadTemplates();
+        });
+
+        // ========== 标签页切换 ==========
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-indigo-500', 'text-indigo-600', 'dark:text-indigo-400');
+                btn.classList.add('border-transparent', 'text-slate-500');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('border-indigo-500', 'text-indigo-600', 'dark:text-indigo-400');
+            document.getElementById(`tab-${tab}`).classList.remove('border-transparent', 'text-slate-500');
+            
+            document.getElementById('panel-analyze').classList.toggle('hidden', tab !== 'analyze');
+            document.getElementById('panel-preview').classList.toggle('hidden', tab !== 'preview');
+            
+            if (tab === 'preview' && currentResult) {
+                renderPreview();
+            }
+        }
+
+        // ========== 主题切换 ==========
+        function initTheme() {
+            if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        }
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            if (wordCloudChart) {
+                wordCloudChart.setOption({
+                    backgroundColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff'
+                });
+            }
+        }
+
+        // ========== 上传交互 ==========
+        function initUpload() {
+            const dropZone = document.getElementById('dropZone');
+            const pdfInput = document.getElementById('pdfInput');
+
+            dropZone.addEventListener('click', () => pdfInput.click());
+            pdfInput.addEventListener('change', handleFileSelect);
+            
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-indigo-500'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-indigo-500'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (e.dataTransfer.files.length) { pdfInput.files = e.dataTransfer.files; handleFileSelect(); }
+            });
+        }
+
+        function handleFileSelect() {
+            const file = document.getElementById('pdfInput').files[0];
+            if (file) {
+                document.getElementById('selectedFileName').textContent = file.name;
+                document.getElementById('uploadPrompt').classList.add('hidden');
+                document.getElementById('fileInfo').classList.remove('hidden');
+                
+                // 读取文件为预览做准备
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    currentFileBytes = new Uint8Array(e.target.result);
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        function clearFile() {
+            document.getElementById('pdfInput').value = '';
+            document.getElementById('uploadPrompt').classList.remove('hidden');
+            document.getElementById('fileInfo').classList.add('hidden');
+            currentFileBytes = null;
+            pdfDoc = null;
+        }
+
+        // ========== 模板加载 ==========
+        async function loadTemplates() {
+            try {
+                const res = await fetch(`${API_URL}/templates`);
+                const json = await res.json();
+                if (json.success) {
+                    window.jdTemplates = json.data;
+                }
+            } catch(e) {
+                console.log("Templates load failed");
+            }
+        }
+
+        function applyTemplate() {
+            const val = document.getElementById('jdTemplate').value;
+            if (val && window.jdTemplates && window.jdTemplates[val]) {
+                document.getElementById('jobDesc').value = window.jdTemplates[val];
+            }
+        }
+
+        // ========== 核心解析逻辑 ==========
+        async function handleAnalyze() {
+            const fileInput = document.getElementById('pdfInput');
+            if (!fileInput.files[0]) { showToast("请先选择简历文件", "error"); return; }
+
+            // UI 状态
+            const btnText = document.getElementById('btnText');
+            const loadingIcon = document.getElementById('loadingIcon');
+            btnText.innerText = "AI 分析中...";
+            loadingIcon.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append("resume", fileInput.files[0]);
+            formData.append("job_description", document.getElementById('jobDesc').value);
+            formData.append("generate_advice", document.getElementById('genAdvice').checked);
+            formData.append("generate_detailed", document.getElementById('genDetailed').checked);
+
+            try {
+                const res = await fetch(`${API_URL}/analyze`, { method: 'POST', body: formData });
+                const result = await res.json();
+
+                if (result.success) {
+                    currentResult = result;
+                    renderResult(result);
+                    loadHistory(); // 刷新历史
+                    showToast(`解析成功！耗时 ${result.processing_time}s`, "success");
+                } else {
+                    showToast(result.message, "error");
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("网络请求失败", "error");
+            } finally {
+                btnText.innerText = "开始智能解析";
+                loadingIcon.classList.add('hidden');
+            }
+        }
+
+        function renderResult(result) {
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('resultArea').classList.remove('hidden');
+
+            const data = result.data;
+            
+            // 基本信息
+            document.getElementById('nameDisplay').innerText = data.name || '未知';
+            document.getElementById('phoneDisplay').innerText = data.phone || '未知';
+            document.getElementById('emailDisplay').innerText = data.email || '未知';
+            document.getElementById('educationDisplay').innerText = data.education || '未知';
+            document.getElementById('workYearsDisplay').innerText = (data.work_years || 0) + ' 年';
+            document.getElementById('salaryDisplay').innerText = data.expected_salary || '待定';
+            
+            document.getElementById('jsonEditor').value = JSON.stringify(data, null, 2);
+            
+            // 状态标签
+            document.getElementById('timeBadge').innerText = `耗时 ${result.processing_time}s`;
+            document.getElementById('cacheBadge').classList.toggle('hidden', !result.from_cache);
+
+            // 星级评分
+            updateStarDisplay(result.star_rating || 0);
+
+            // 分数动画
+            animateScore(Math.round(result.match_score));
+
+            // 详细分析
+            renderDetailedAnalysis(result.detailed_analysis);
+
+            // 技能词云
+            renderWordCloud(data.skills || []);
+
+            // 面试建议
+            const adviceCard = document.getElementById('adviceCard');
+            if (result.interview_advice) {
+                adviceCard.classList.remove('hidden');
+                document.getElementById('evaluationText').innerText = result.interview_advice.evaluation;
+                const qList = document.getElementById('questionsList');
+                qList.innerHTML = '';
+                (result.interview_advice.questions || []).forEach(q => {
+                    const li = document.createElement('li');
+                    li.textContent = q;
+                    qList.appendChild(li);
+                });
+            } else {
+                adviceCard.classList.add('hidden');
+            }
+        }
+
+        function renderDetailedAnalysis(analysis) {
+            const card = document.getElementById('analysisCard');
+            if (!analysis) {
+                card.classList.add('hidden');
+                return;
+            }
+            card.classList.remove('hidden');
+
+            // 匹配点
+            const matchedPoints = document.getElementById('matchedPoints');
+            matchedPoints.innerHTML = (analysis.matched_points || []).length > 0 
+                ? analysis.matched_points.map(p => `<p class="match-item"><span class="text-green-500">✓</span> ${p}</p>`).join('')
+                : '<p class="text-slate-400">暂无</p>';
+
+            // 缺失点
+            const missingPoints = document.getElementById('missingPoints');
+            missingPoints.innerHTML = (analysis.missing_points || []).length > 0
+                ? analysis.missing_points.map(p => `<p class="match-item"><span class="text-orange-500">!</span> ${p}</p>`).join('')
+                : '<p class="text-slate-400">暂无</p>';
+
+            // 建议
+            const suggestions = document.getElementById('suggestions');
+            suggestions.innerText = (analysis.suggestions || []).join(' ');
+
+            // 技能标签
+            const matchedSkills = document.getElementById('matchedSkills');
+            matchedSkills.innerHTML = (analysis.matched_skills || []).map(s => 
+                `<span class="tag bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">${s}</span>`
+            ).join('');
+
+            const missingSkills = document.getElementById('missingSkills');
+            missingSkills.innerHTML = (analysis.missing_skills || []).map(s => 
+                `<span class="tag bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">${s}</span>`
+            ).join('');
+        }
+
+        function renderWordCloud(skills) {
+            const dom = document.getElementById('wordCloud');
+            if (!skills || skills.length === 0) {
+                dom.innerHTML = '<div class="text-center text-slate-400 py-10">暂无技能数据</div>';
+                return;
+            }
+
+            // 简单模拟词云数据
+            const data = skills.map((skill, idx) => ({
+                name: skill,
+                value: Math.floor(Math.random() * 50) + 20
+            }));
+
+            if (wordCloudChart) {
+                wordCloudChart.dispose();
+            }
+            wordCloudChart = echarts.init(dom);
+            
+            const option = {
+                backgroundColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff',
+                series: [{
+                    type: 'wordCloud',
+                    shape: 'circle',
+                    gridSize: 8,
+                    sizeRange: [12, 32],
+                    rotationRange: [-45, 45],
+                    textStyle: {
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: 'bold',
+                        color: function () {
+                            const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'];
+                            return colors[Math.floor(Math.random() * colors.length)];
+                        }
+                    },
+                    emphasis: {
+                        textStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0,0,0,0.3)'
+                        }
+                    },
+                    data: data
+                }]
+            };
+
+            wordCloudChart.setOption(option);
+            window.addEventListener('resize', () => wordCloudChart.resize());
+        }
+
+        function animateScore(target) {
+            const disp = document.getElementById('scoreDisplay');
+            const circle = document.getElementById('scoreCircle');
+            let current = 0;
+            const step = target / 20;
+            
+            const timer = setInterval(() => {
+                current += step;
+                if (current >= target) { current = target; clearInterval(timer); }
+                disp.innerText = Math.round(current);
+                circle.style.strokeDashoffset = 283 - (283 * current / 100);
+            }, 30);
+        }
+
+        // ========== 星级评分 ==========
+        function updateStarDisplay(rating) {
+            const stars = document.querySelectorAll('#starRating .star');
+            stars.forEach((star, idx) => {
+                if (idx < rating) {
+                    star.classList.remove('text-slate-300');
+                    star.classList.add('text-yellow-400');
+                } else {
+                    star.classList.add('text-slate-300');
+                    star.classList.remove('text-yellow-400');
+                }
+            });
+        }
+
+        async function setRating(rating) {
+            if (!currentResult) return;
+            try {
+                await fetch(`${API_URL}/rating`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_hash: currentResult.file_hash, rating: rating })
+                });
+                updateStarDisplay(rating);
+                showToast("评分已保存", "success");
+            } catch(e) {
+                showToast("评分保存失败", "error");
+            }
+        }
+
+        // ========== 内联编辑 ==========
+        function startEdit(field) {
+            if (!currentResult) return;
+            editingField = field;
+            const displayEl = document.getElementById(`${field}Display`);
+            document.getElementById('editInput').value = displayEl.innerText;
+            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editModal').classList.add('flex');
+            document.getElementById('editInput').focus();
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('editModal').classList.remove('flex');
+        }
+
+        function saveFieldEdit() {
+            if (!editingField || !currentResult) return;
+            const val = document.getElementById('editInput').value;
+            currentResult.data[editingField] = val;
+            document.getElementById(`${editingField}Display`).innerText = val;
+            document.getElementById('jsonEditor').value = JSON.stringify(currentResult.data, null, 2);
+            closeEditModal();
+            showToast("字段已更新，记得点击保存修改同步到服务器", "info");
+        }
+
+        async function saveEdits() {
+            if (!currentResult) return;
+            try {
+                const newData = JSON.parse(document.getElementById('jsonEditor').value);
+                const res = await fetch(`${API_URL}/update`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_hash: currentResult.file_hash, data: newData })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    currentResult.data = newData;
+                    showToast("数据已保存", "success");
+                } else {
+                    showToast(json.message, "error");
+                }
+            } catch(e) {
+                showToast("JSON 格式错误或网络失败", "error");
+            }
+        }
+
+        // ========== 导出 ==========
+        function exportResult() {
+            if (!currentResult) return;
+            const dataStr = JSON.stringify(currentResult, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resume_${currentResult.data.name || 'unknown'}_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("导出成功", "success");
+        }
+
+        // ========== PDF 预览 ==========
+        function renderPreview() {
+            const placeholder = document.getElementById('previewPlaceholder');
+            const viewer = document.getElementById('pdfViewer');
+            const textPreview = document.getElementById('textPreview');
+            const controls = document.getElementById('pdfControls');
+
+            if (currentFileBytes) {
+                placeholder.classList.add('hidden');
+                viewer.classList.remove('hidden');
+                controls.classList.remove('hidden');
+                textPreview.classList.add('hidden');
+                
+                pdfjsLib.getDocument({ data: currentFileBytes }).promise.then(doc => {
+                    pdfDoc = doc;
+                    document.getElementById('pageNum').innerText = `1 / ${doc.numPages}`;
+                    pageNum = 1;
+                    renderPage();
+                }).catch(err => {
+                    console.error("PDF render error:", err);
+                    viewer.classList.add('hidden');
+                    textPreview.classList.remove('hidden');
+                    document.getElementById('rawTextDisplay').innerText = currentResult?.raw_text || "无法渲染PDF";
+                });
+            } else if (currentResult?.raw_text) {
+                placeholder.classList.add('hidden');
+                viewer.classList.add('hidden');
+                textPreview.classList.remove('hidden');
+                document.getElementById('rawTextDisplay').innerText = currentResult.raw_text;
+            } else {
+                placeholder.classList.remove('hidden');
+                viewer.classList.add('hidden');
+                textPreview.classList.add('hidden');
+            }
+        }
+
+        function renderPage() {
+            if (!pdfDoc) return;
+            pdfDoc.getPage(pageNum).then(page => {
+                const canvas = document.getElementById('pdfCanvas');
+                const ctx = canvas.getContext('2d');
+                const scale = parseFloat(document.getElementById('scaleSelect').value);
+                const viewport = page.getViewport({ scale: scale });
+                
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                });
+                
+                document.getElementById('pageNum').innerText = `${pageNum} / ${pdfDoc.numPages}`;
+                document.getElementById('prevBtn').disabled = pageNum <= 1;
+                document.getElementById('nextBtn').disabled = pageNum >= pdfDoc.numPages;
+            });
+        }
+
+        function prevPage() {
+            if (pageNum <= 1) return;
+            pageNum--;
+            renderPage();
+        }
+
+        function nextPage() {
+            if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
+            pageNum++;
+            renderPage();
+        }
+
+        // ========== 历史记录 ==========
+        async function loadHistory() {
+            try {
+                const minScore = document.getElementById('filterScore')?.value || 0;
+                const res = await fetch(`${API_URL}/history?min_score=${minScore}`);
+                const json = await res.json();
+                const list = document.getElementById('historyList');
+                
+                if (!json.data || json.data.length === 0) {
+                    list.innerHTML = '<div class="text-center text-slate-400 text-sm py-8">暂无解析记录</div>';
+                    return;
+                }
+
+                list.innerHTML = json.data.map(item => `
+                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition border border-transparent hover:border-slate-200 dark:hover:border-slate-600">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-sm truncate">${item.name}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-yellow-500">${'★'.repeat(item.star_rating || 0)}${'☆'.repeat(5 - (item.star_rating || 0))}</span>
+                                <span class="text-xs font-bold ${item.score >= 60 ? 'text-green-500' : 'text-orange-500'}">${item.score}分</span>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400 truncate">${item.file_name}</div>
+                    </div>
+                `).join('');
+            } catch(e) { console.log("History load failed"); }
+        }
+
+        async function clearHistory() {
+            if(!confirm("确定清空历史记录？")) return;
+            await fetch(`${API_URL}/history`, { method: 'DELETE' });
+            loadHistory();
+            showToast("历史已清空", "success");
+        }
+
+        // ========== 工具函数 ==========
+        function showToast(msg, type = "info") {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const colors = {
+                success: "bg-green-500",
+                error: "bg-red-500",
+                info: "bg-slate-700"
+            };
+            toast.className = `toast ${colors[type]} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2`;
+            toast.innerHTML = `<span>${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('absolute');
+            sidebar.classList.toggle('z-40');
+            sidebar.classList.toggle('h-full');
+        }
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能简历筛选系统 - Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -280,3 +1202,4 @@
     </script>
 </body>
 </html>
+
