@@ -30,13 +30,11 @@ for (const asset of [
 }
 
 for (const phrase of [
-  '82 个测试文件，349 项测试通过',
-  '后端 156 个测试套件，677 项测试通过',
-  '当前不提供公共在线服务',
-  '不公开当前私有源代码',
-  '消息重复与断线恢复',
-  '文件对象与业务状态',
-  'AI 上下文与多端同步',
+  '覆盖 82 个测试文件',
+  '覆盖 156 个测试套件',
+  '消息只入库一次，断线后仍可恢复',
+  '文件可转存、可分享、可回收',
+  'AI 回复流式展示并同步多端',
 ]) {
   requireText(html, phrase);
 }
@@ -46,7 +44,7 @@ for (const releaseFile of [
   'Qingyu_0.1.0_windows_x64_setup.exe',
   'Qingyu_0.1.0_android_arm64.apk',
 ]) {
-  requireText(html, `https://github.com/maxxvll/resume-ai-demo/releases/download/graduatechat-v0.1.0/${releaseFile}`, releaseFile);
+  requireText(html, `https://github.com/maxxvll/resume-ai-demo/releases/download/qingyu-v0.1.0/${releaseFile}`, releaseFile);
 }
 
 const localImages = [...html.matchAll(/<img\s+[^>]*src="([^"]+)"[^>]*>/g)];
@@ -65,9 +63,14 @@ for (const banned of ['AWS_ACCESS_KEY', 'SECRET_KEY', 'PRIVATE_KEY', 'sk-', 'Bea
   if (html.includes(banned) || readme.includes(banned)) failures.push(`prohibited public text: ${banned}`);
 }
 
+for (const bannedCopy of ['GraduateChat', '公开范围', '私有源代码', '公共在线服务', '本页面', '完整业务功能需要本地后端']) {
+  if (html.includes(bannedCopy) || readme.includes(bannedCopy)) failures.push(`self-explanatory or retired copy: ${bannedCopy}`);
+}
+
 if (/<span\b/i.test(html)) failures.push('visible helper fragments must not use span elements');
 if (/font-size:\s*(12|13)px/.test(html)) failures.push('micro-copy below 14px is not allowed');
 if (/class="[^"]*(eyebrow|caption)[^"]*"/.test(html)) failures.push('decorative eyebrow or caption copy is not allowed');
+if (/class="[^"]*boundary[^"]*"/.test(html)) failures.push('public-boundary explainer block is not allowed');
 
 if ((html.match(/<html\b/g) || []).length !== 1) failures.push('index.html must contain exactly one document');
 if (!html.includes('@media (prefers-color-scheme: dark)')) failures.push('missing automatic dark mode');
