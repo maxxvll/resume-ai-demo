@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="青语 GraduateChat 跨平台即时通讯系统的脱敏项目说明，介绍核心功能、系统架构、消息可靠性、文件生命周期、会话内 AI、测试与安装包。">
+  <meta name="description" content="青语 GraduateChat 跨平台即时通讯系统的项目说明，介绍核心功能、系统架构、消息可靠性、文件生命周期、会话内 AI、测试与安装包。">
   <meta name="color-scheme" content="light dark">
   <meta property="og:title" content="青语 GraduateChat | 跨平台 IM 工程作品">
-  <meta property="og:description" content="从消息送达、断线补拉到文件转存与多端客户端，完整介绍一套可运行的 IM 产品。">
+  <meta property="og:description" content="一套覆盖消息、文件、AI、多端同步和音视频通话的跨平台即时通讯系统。">
   <meta property="og:type" content="website">
   <meta property="og:image" content="assets/desktop-chat.png">
   <title>青语 GraduateChat | 跨平台 IM 工程作品</title>
@@ -14,34 +14,32 @@
   <style>
     :root {
       color-scheme: light;
-      --page: #f4f7fb;
-      --surface: #fbfdff;
-      --surface-strong: #ffffff;
-      --ink: #182230;
-      --muted: #536273;
-      --soft: #e9eef5;
-      --line: #d6dfeb;
-      --accent: #175fca;
-      --accent-strong: #0e4da8;
-      --accent-soft: #e7f0ff;
-      --shadow: 0 18px 50px rgba(34, 61, 94, 0.12);
+      --page: #f6f8fb;
+      --surface: #ffffff;
+      --surface-soft: #eef4fc;
+      --ink: #162132;
+      --muted: #526173;
+      --line: #d8e0ea;
+      --accent: #145fbd;
+      --accent-strong: #0d4f9f;
+      --accent-soft: #e6f0fd;
+      --shadow: 0 22px 60px rgba(35, 62, 93, 0.13);
       --radius: 18px;
-      --content: 1180px;
+      --content: 1160px;
     }
 
     :root[data-theme="dark"] {
       color-scheme: dark;
-      --page: #10151c;
-      --surface: #151c25;
-      --surface-strong: #1b2430;
-      --ink: #eef4fb;
-      --muted: #a8b5c5;
-      --soft: #202b38;
-      --line: #2f3c4d;
-      --accent: #79adff;
-      --accent-strong: #9bc1ff;
-      --accent-soft: #192c47;
-      --shadow: 0 20px 52px rgba(0, 0, 0, 0.34);
+      --page: #10161e;
+      --surface: #18212c;
+      --surface-soft: #1d2937;
+      --ink: #edf3fa;
+      --muted: #aab7c7;
+      --line: #314052;
+      --accent: #79acfa;
+      --accent-strong: #9bc3ff;
+      --accent-soft: #1b304b;
+      --shadow: 0 24px 64px rgba(0, 0, 0, 0.36);
     }
 
     * { box-sizing: border-box; }
@@ -51,182 +49,190 @@
       background: var(--page);
       color: var(--ink);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      font-size: 16px;
       line-height: 1.7;
       text-rendering: optimizeLegibility;
     }
-    img { display: block; max-width: 100%; }
+    img { display: block; max-width: 100%; height: auto; }
     a { color: inherit; }
     button, a { -webkit-tap-highlight-color: transparent; }
-    :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 58%, transparent); outline-offset: 3px; }
+    :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 3px; }
 
-    .container { width: min(calc(100% - 40px), var(--content)); margin-inline: auto; }
+    .container { width: min(calc(100% - 48px), var(--content)); margin-inline: auto; }
     .site-nav {
       position: sticky;
       top: 0;
       z-index: 20;
-      border-bottom: 1px solid color-mix(in srgb, var(--line) 86%, transparent);
-      background: color-mix(in srgb, var(--page) 90%, transparent);
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 84%, transparent);
+      background: color-mix(in srgb, var(--page) 91%, transparent);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
     }
-    .nav-inner { min-height: 70px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-    .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; font-weight: 760; letter-spacing: -0.02em; }
-    .brand img { width: 34px; height: 34px; border-radius: 10px; }
-    .nav-links { display: flex; align-items: center; gap: 26px; font-size: 14px; color: var(--muted); }
+    .nav-inner { min-height: 70px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+    .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; }
+    .brand img { width: 36px; height: 36px; border-radius: 11px; }
+    .brand strong { font-size: 16px; letter-spacing: -0.02em; }
+    .nav-links { display: flex; align-items: center; gap: 25px; color: var(--muted); font-size: 15px; }
     .nav-links a { text-decoration: none; }
     .nav-links a:hover { color: var(--ink); }
     .theme-toggle {
-      min-width: 76px;
-      height: 36px;
+      min-width: 72px;
+      height: 38px;
       border: 1px solid var(--line);
-      border-radius: 999px;
+      border-radius: 12px;
       background: var(--surface);
       color: var(--ink);
       font: inherit;
-      font-size: 13px;
+      font-size: 15px;
       cursor: pointer;
     }
 
-    .hero { padding: 72px 0 58px; }
-    .hero-grid { display: grid; grid-template-columns: 0.82fr 1.18fr; gap: 54px; align-items: center; }
-    .eyebrow { margin: 0 0 12px; color: var(--accent-strong); font-size: 13px; font-weight: 760; letter-spacing: 0.08em; }
+    .hero { min-height: calc(100dvh - 70px); display: grid; align-items: center; padding: 64px 0; }
+    .hero-grid { display: grid; grid-template-columns: 0.82fr 1.18fr; gap: 60px; align-items: center; }
     h1, h2, h3, p { margin-top: 0; }
-    h1 { margin-bottom: 22px; max-width: 720px; font-size: clamp(42px, 5vw, 68px); line-height: 1.05; letter-spacing: -0.055em; }
-    .hero-copy { max-width: 590px; margin-bottom: 30px; color: var(--muted); font-size: 18px; }
+    h1 {
+      max-width: 660px;
+      margin-bottom: 24px;
+      font-size: clamp(46px, 5.5vw, 72px);
+      line-height: 1.07;
+      letter-spacing: -0.055em;
+    }
+    .hero-copy { max-width: 560px; margin-bottom: 32px; color: var(--muted); font-size: 19px; line-height: 1.75; }
     .actions { display: flex; flex-wrap: wrap; gap: 12px; }
     .button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 46px;
-      padding: 0 20px;
+      min-height: 48px;
+      padding: 0 21px;
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: var(--surface-strong);
+      background: var(--surface);
       color: var(--ink);
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 720;
+      line-height: 1;
       text-decoration: none;
+      white-space: nowrap;
       transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
     }
-    .button.primary { border-color: var(--accent-strong); background: var(--accent-strong); color: #f8fbff; }
+    .button.primary { border-color: var(--accent-strong); background: var(--accent-strong); color: #f6f9fd; }
     .button:hover { transform: translateY(-2px); border-color: var(--accent); }
-    .hero-visual { position: relative; }
+    .button:active { transform: translateY(0); }
+    .hero-visual { position: relative; margin: 0; }
     .hero-visual::before {
       content: "";
       position: absolute;
-      inset: 8% -3% -7% 6%;
+      inset: 7% -4% -7% 6%;
       border-radius: var(--radius);
       background: var(--accent-soft);
       z-index: -1;
-      transform: rotate(1.8deg);
     }
     .hero-visual img { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
-    .caption { margin: 12px 4px 0; color: var(--muted); font-size: 13px; }
 
-    .signal-strip { border-block: 1px solid var(--line); background: var(--surface); }
-    .signals { display: grid; grid-template-columns: 1.1fr 1fr 1fr; }
-    .signal { padding: 24px 28px; border-right: 1px solid var(--line); }
-    .signal:last-child { border-right: 0; }
-    .signal strong { display: block; margin-bottom: 3px; font-size: 17px; }
-    .signal span { color: var(--muted); font-size: 13px; }
+    section { padding: 104px 0; scroll-margin-top: 70px; }
+    section + section { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+    .section-heading { max-width: 760px; margin-bottom: 44px; }
+    h2 { margin-bottom: 14px; font-size: clamp(34px, 4vw, 50px); line-height: 1.14; letter-spacing: -0.045em; }
+    .section-heading p { margin-bottom: 0; color: var(--muted); font-size: 18px; }
 
-    section { padding: 88px 0; scroll-margin-top: 70px; }
-    .section-heading { max-width: 690px; margin-bottom: 38px; }
-    h2 { margin-bottom: 13px; font-size: clamp(30px, 3.2vw, 46px); line-height: 1.14; letter-spacing: -0.04em; }
-    .section-heading p { margin-bottom: 0; color: var(--muted); font-size: 16px; }
-
-    .product-grid { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 58px; align-items: start; }
-    .product-intro { position: sticky; top: 110px; }
-    .product-intro p { color: var(--muted); }
-    .ownership { margin-top: 26px; padding: 20px 22px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--radius) var(--radius) 0; }
-    .ownership strong { display: block; margin-bottom: 5px; }
+    .product-grid { display: grid; grid-template-columns: 0.72fr 1.28fr; gap: 64px; align-items: start; }
+    .product-intro { position: sticky; top: 116px; }
+    .ownership { margin: 28px 0 0; padding: 22px 24px; border-left: 4px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; background: var(--accent-soft); color: var(--muted); }
+    .ownership strong { color: var(--ink); }
     .capabilities { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-    .capability { min-height: 184px; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
-    .capability:nth-child(1), .capability:nth-child(4) { background: var(--surface-strong); }
-    .capability h3 { margin-bottom: 9px; font-size: 19px; }
-    .capability p { margin-bottom: 0; color: var(--muted); font-size: 14px; }
+    .capability { min-height: 174px; padding: 26px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .capability.wide { grid-column: 1 / -1; min-height: auto; background: var(--surface-soft); }
+    .capability h3 { margin-bottom: 10px; font-size: 21px; letter-spacing: -0.02em; }
+    .capability p { margin-bottom: 0; color: var(--muted); font-size: 16px; }
 
-    .architecture-shell { padding: 34px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-strong); box-shadow: var(--shadow); }
-    .architecture { display: grid; grid-template-columns: repeat(4, 1fr); gap: 34px; list-style: none; padding: 0; margin: 0; }
-    .flow-step { position: relative; min-height: 162px; padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
-    .flow-step:not(:last-child)::after { content: ">"; position: absolute; right: -24px; top: 50%; color: var(--accent); font-size: 24px; font-weight: 800; transform: translateY(-50%); }
-    .flow-step strong { display: block; margin-bottom: 10px; font-size: 16px; }
-    .flow-step span { color: var(--muted); font-size: 13px; }
-    .architecture-note { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 24px; }
-    .architecture-note p { margin: 0; color: var(--muted); font-size: 14px; }
+    .architecture-shell { padding: 36px 0 0; border-top: 1px solid var(--line); }
+    .architecture { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin: 0; padding: 0; list-style: none; }
+    .flow-step { position: relative; min-height: 172px; padding: 0 30px; border-right: 1px solid var(--line); }
+    .flow-step:first-child { padding-left: 0; }
+    .flow-step:last-child { padding-right: 0; border-right: 0; }
+    .flow-step::before { display: block; margin-bottom: 18px; color: var(--accent); font-size: 24px; font-weight: 800; content: counter(list-item, decimal-leading-zero); }
+    .flow-step strong { display: block; margin-bottom: 10px; font-size: 19px; }
+    .flow-step p { margin: 0; color: var(--muted); font-size: 15px; }
+    .architecture-note { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 34px; }
+    .architecture-note p { margin: 0; padding: 24px; border-radius: var(--radius); background: var(--accent-soft); color: var(--muted); font-size: 16px; }
+    .architecture-note strong { color: var(--ink); }
 
     .engineering-list { border-top: 1px solid var(--line); }
-    .engineering-item { display: grid; grid-template-columns: 240px 1fr; gap: 48px; padding: 34px 0; border-bottom: 1px solid var(--line); }
-    .engineering-item h3 { margin: 0; font-size: 20px; }
-    .engineering-item p { margin-bottom: 12px; color: var(--muted); }
+    .engineering-item { display: grid; grid-template-columns: 260px 1fr; gap: 54px; padding: 38px 0; border-bottom: 1px solid var(--line); }
+    .engineering-item h3 { margin: 0; font-size: 22px; line-height: 1.4; letter-spacing: -0.02em; }
+    .engineering-item p { margin-bottom: 13px; color: var(--muted); font-size: 16px; }
     .engineering-item p:last-child { margin-bottom: 0; }
-    .result { color: var(--ink) !important; font-weight: 650; }
+    .result { color: var(--ink) !important; font-weight: 680; }
 
-    .gallery { display: grid; grid-template-columns: 1.4fr 0.6fr; gap: 20px; }
-    .gallery-main { display: grid; gap: 20px; }
-    .gallery-side { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-content: start; }
-    .shot { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-strong); box-shadow: var(--shadow); }
-    .shot img { width: 100%; height: auto; }
-    .shot figcaption { padding: 15px 18px 17px; color: var(--muted); font-size: 13px; }
-    .shot { margin: 0; }
+    .gallery { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 28px; align-items: start; }
+    .gallery-main { display: grid; gap: 30px; }
+    .gallery-side { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .showcase { margin: 0; }
+    .showcase h3 { margin-bottom: 14px; font-size: 20px; }
+    .showcase img { width: 100%; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .gallery-side .showcase h3 { font-size: 17px; }
 
-    .verification-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 28px; align-items: start; }
-    .evidence { padding: 30px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-strong); }
-    .evidence h3 { margin-bottom: 18px; font-size: 22px; }
-    .check-list { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
-    .check-list li { display: grid; grid-template-columns: 10px 1fr; gap: 12px; align-items: start; color: var(--muted); }
-    .check-list li::before { content: ""; width: 8px; height: 8px; margin-top: 9px; border-radius: 2px; background: var(--accent); }
-    .check-list strong { color: var(--ink); }
+    .verification-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 28px; align-items: stretch; }
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .metric { min-height: 168px; padding: 26px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .metric strong { display: block; margin-bottom: 12px; color: var(--accent-strong); font-size: 31px; line-height: 1.1; letter-spacing: -0.04em; }
+    .metric h3 { margin-bottom: 8px; font-size: 18px; }
+    .metric p { margin: 0; color: var(--muted); font-size: 15px; }
     .boundary { padding: 30px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--accent-soft); }
-    .boundary h3 { margin-bottom: 12px; font-size: 21px; }
-    .boundary p { margin-bottom: 12px; color: var(--muted); font-size: 14px; }
+    .boundary h3 { margin-bottom: 18px; font-size: 23px; }
+    .boundary p { margin-bottom: 16px; color: var(--muted); font-size: 16px; }
     .boundary p:last-child { margin-bottom: 0; }
 
     .downloads { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-    .download-item { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 112px; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-strong); }
+    .download-item { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 124px; padding: 26px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
     .download-item.android { grid-column: 1 / -1; }
-    .download-item h3 { margin-bottom: 4px; font-size: 18px; }
-    .download-item p { margin: 0; color: var(--muted); font-size: 13px; }
-    .download-link { white-space: nowrap; }
-    .release-note { margin-top: 20px; padding: 18px 20px; border-left: 4px solid var(--accent); background: var(--accent-soft); color: var(--muted); border-radius: 0 12px 12px 0; font-size: 14px; }
+    .download-item h3 { margin-bottom: 6px; font-size: 20px; }
+    .download-item p { margin: 0; color: var(--muted); font-size: 15px; }
 
-    footer { padding: 36px 0 54px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+    footer { padding: 38px 0 52px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
     .footer-inner { display: flex; justify-content: space-between; gap: 24px; }
     .footer-inner p { margin: 0; }
+    .footer-inner a { color: var(--ink); font-weight: 650; }
 
-    @media (max-width: 900px) {
+    @media (max-width: 940px) {
+      .hero { min-height: auto; }
       .hero-grid, .product-grid, .verification-grid { grid-template-columns: 1fr; }
-      .hero { padding-top: 50px; }
       .product-intro { position: static; }
-      .architecture { grid-template-columns: 1fr 1fr; }
-      .flow-step:nth-child(2)::after { display: none; }
+      .architecture { grid-template-columns: 1fr 1fr; gap: 30px 0; }
+      .flow-step:nth-child(2) { border-right: 0; padding-right: 0; }
+      .flow-step:nth-child(3) { padding-left: 0; }
       .gallery { grid-template-columns: 1fr; }
-      .gallery-side { max-width: 570px; }
-      .engineering-item { grid-template-columns: 190px 1fr; gap: 28px; }
+      .gallery-side { max-width: 620px; }
+      .engineering-item { grid-template-columns: 220px 1fr; gap: 34px; }
     }
 
-    @media (max-width: 680px) {
-      .container { width: min(calc(100% - 28px), var(--content)); }
+    @media (max-width: 700px) {
+      .container { width: min(calc(100% - 30px), var(--content)); }
+      .brand strong { font-size: 15px; }
       .nav-links a:not(.download-nav) { display: none; }
       .nav-links { gap: 10px; }
-      .theme-toggle { min-width: 68px; }
-      .hero { padding: 44px 0 38px; }
-      h1 { font-size: 42px; }
-      .hero-copy { font-size: 16px; }
-      .signals { grid-template-columns: 1fr; }
-      .signal { border-right: 0; border-bottom: 1px solid var(--line); }
-      .signal:last-child { border-bottom: 0; }
-      section { padding: 66px 0; }
-      .capabilities { grid-template-columns: 1fr; }
-      .architecture-shell { padding: 20px; }
-      .architecture { grid-template-columns: 1fr; gap: 24px; }
-      .flow-step:not(:last-child)::after { content: "v"; right: 50%; top: auto; bottom: -27px; transform: translateX(50%); }
-      .architecture-note { grid-template-columns: 1fr; }
-      .engineering-item { grid-template-columns: 1fr; gap: 10px; }
+      .theme-toggle { min-width: 66px; }
+      .hero { padding: 48px 0 58px; }
+      .hero-grid { gap: 42px; }
+      h1 { font-size: 43px; }
+      .hero-copy { font-size: 17px; }
+      section { padding: 76px 0; }
+      .section-heading { margin-bottom: 34px; }
+      .section-heading p { font-size: 17px; }
+      .capabilities, .architecture, .architecture-note, .metrics, .downloads { grid-template-columns: 1fr; }
+      .capability.wide, .download-item.android { grid-column: auto; }
+      .architecture { gap: 0; }
+      .flow-step, .flow-step:first-child, .flow-step:nth-child(2), .flow-step:nth-child(3), .flow-step:last-child {
+        min-height: auto;
+        padding: 24px 0;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .flow-step:first-child { padding-top: 0; }
+      .flow-step:last-child { border-bottom: 0; }
+      .engineering-item { grid-template-columns: 1fr; gap: 12px; }
       .gallery-side { grid-template-columns: 1fr 1fr; }
-      .downloads { grid-template-columns: 1fr; }
-      .download-item.android { grid-column: auto; }
       .download-item { align-items: flex-start; flex-direction: column; }
       .footer-inner { flex-direction: column; }
     }
@@ -234,17 +240,16 @@
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
         color-scheme: dark;
-        --page: #10151c;
-        --surface: #151c25;
-        --surface-strong: #1b2430;
-        --ink: #eef4fb;
-        --muted: #a8b5c5;
-        --soft: #202b38;
-        --line: #2f3c4d;
-        --accent: #79adff;
-        --accent-strong: #9bc1ff;
-        --accent-soft: #192c47;
-        --shadow: 0 20px 52px rgba(0, 0, 0, 0.34);
+        --page: #10161e;
+        --surface: #18212c;
+        --surface-soft: #1d2937;
+        --ink: #edf3fa;
+        --muted: #aab7c7;
+        --line: #314052;
+        --accent: #79acfa;
+        --accent-strong: #9bc3ff;
+        --accent-soft: #1b304b;
+        --shadow: 0 24px 64px rgba(0, 0, 0, 0.36);
       }
     }
 
@@ -261,12 +266,12 @@
 <body>
   <header class="site-nav">
     <div class="container nav-inner">
-      <a class="brand" href="#top" aria-label="返回青语项目首页">
-        <img src="assets/app-logo.png" alt="" width="34" height="34">
-        <span>青语 GraduateChat</span>
+      <a class="brand" href="#top">
+        <img src="assets/app-logo.png" alt="" width="36" height="36">
+        <strong>青语 GraduateChat</strong>
       </a>
       <nav class="nav-links" aria-label="页面导航">
-        <a href="#product">产品</a>
+        <a href="#product">功能</a>
         <a href="#architecture">架构</a>
         <a href="#engineering">工程设计</a>
         <a href="#evidence">验证</a>
@@ -280,66 +285,53 @@
     <section class="hero" aria-labelledby="hero-title">
       <div class="container hero-grid">
         <div>
-          <p class="eyebrow">跨平台即时通讯个人项目</p>
           <h1 id="hero-title">青语，跨平台即时通讯系统</h1>
-          <p class="hero-copy">从消息送达、断线补拉到文件转存和多端客户端，完整实现一套可运行的 IM 产品。</p>
+          <p class="hero-copy">覆盖单聊群聊、文件云盘、多端同步、会话内 AI 与音视频通话，并提供桌面和移动端安装包。</p>
           <div class="actions">
-            <a class="button primary" href="#engineering">查看工程设计</a>
+            <a class="button primary" href="#engineering">工程设计</a>
             <a class="button" href="#downloads">下载安装包</a>
           </div>
         </div>
         <figure class="hero-visual">
           <img src="assets/desktop-chat.png" alt="青语桌面端聊天界面，包含会话列表、单聊窗口、AI 助手入口和音视频通话入口" width="1440" height="900" fetchpriority="high">
-          <figcaption class="caption">桌面端会话界面。截图来自真实客户端，不是展示页模拟图。</figcaption>
         </figure>
       </div>
     </section>
-
-    <div class="signal-strip" aria-label="项目概览">
-      <div class="container signals">
-        <div class="signal"><strong>Windows / macOS / Android</strong><span>Tauri 2 多端构建与安装包</span></div>
-        <div class="signal"><strong>WebSocket / SSE / WebRTC</strong><span>消息、AI 流式回复与音视频通话</span></div>
-        <div class="signal"><strong>MySQL / Redis / Kafka / MinIO</strong><span>业务状态、事件投递与对象存储</span></div>
-      </div>
-    </div>
 
     <section id="product" aria-labelledby="product-title">
       <div class="container product-grid">
         <div class="product-intro">
           <div class="section-heading">
-            <h2 id="product-title">不是聊天页面，而是一套完整产品</h2>
-            <p>核心功能围绕用户关系、消息、文件、设备和实时通信展开，每一项都落到可运行的客户端与 Java 后端链路。</p>
+            <h2 id="product-title">核心功能</h2>
+            <p>从用户关系到消息、文件和多端通信，各项能力都有对应的客户端交互与 Java 后端链路。</p>
           </div>
-          <div class="ownership">
-            <strong>个人职责</strong>
-            负责产品设计、主要前后端实现、多端适配、测试和构建发布；页面仅展示可公开的系统行为与脱敏截图。
-          </div>
+          <p class="ownership"><strong>个人职责：</strong>负责产品设计、主要前后端实现、多端适配、自动化测试和安装包构建。</p>
         </div>
 
-        <div class="capabilities" aria-label="核心功能">
-          <article class="capability">
-            <h3>聊天与关系</h3>
-            <p>好友申请与分组、单聊、群聊、群成员管理、回复、转发、撤回、收藏、已读状态和消息搜索。</p>
+        <div class="capabilities" aria-label="核心功能列表">
+          <article class="capability wide">
+            <h3>聊天与用户关系</h3>
+            <p>支持好友申请与分组、单聊、群聊、群成员管理、回复、转发、撤回、收藏、已读状态和消息搜索。</p>
           </article>
           <article class="capability">
             <h3>富媒体消息</h3>
-            <p>文字、图片、文件、语音和视频消息，支持聊天文件转存、在线预览、受控分享与下载。</p>
+            <p>发送文字、图片、文件、语音和视频，并提供在线预览、转存、分享与下载。</p>
           </article>
           <article class="capability">
-            <h3>云盘与文件</h3>
-            <p>目录、上传、容量、预览、下载和分享。聊天对象与云盘对象分开鉴权，避免不同业务入口混用。</p>
+            <h3>文件云盘</h3>
+            <p>管理目录、容量和对象引用，区分聊天文件与云盘文件的访问权限。</p>
           </article>
-          <article class="capability">
+          <article class="capability wide">
             <h3>多端通信</h3>
-            <p>桌面与移动端共享会话状态，支持断线补拉、系统通知、语音/视频通话和客户端安装包。</p>
+            <p>桌面端与移动端共享会话状态，支持离线补拉、系统通知、语音和视频通话。</p>
           </article>
           <article class="capability">
             <h3>会话内 AI</h3>
-            <p>从本地消息、收藏和联系人中筛选有限上下文，以 SSE 逐段展示回复，完成后持久化并同步其他设备。</p>
+            <p>从本地数据中筛选有限上下文，通过 SSE 返回增量内容，完成后同步其他设备。</p>
           </article>
           <article class="capability">
-            <h3>本地能力</h3>
-            <p>通过 Tauri 连接文件系统、系统托盘、通知、剪贴板、扫码和窗口状态，兼顾桌面与移动环境。</p>
+            <h3>系统能力</h3>
+            <p>通过 Tauri 使用文件系统、系统托盘、通知、剪贴板、扫码和窗口状态。</p>
           </article>
         </div>
       </div>
@@ -348,19 +340,31 @@
     <section id="architecture" aria-labelledby="architecture-title">
       <div class="container">
         <div class="section-heading">
-          <h2 id="architecture-title">系统如何协同</h2>
-          <p>实时通知、持久状态与对象文件分别处理，避免把 WebSocket 误当成消息可靠性的全部。</p>
+          <h2 id="architecture-title">系统架构</h2>
+          <p>实时连接负责及时通知，数据库保存最终状态，对象存储承载文件内容。</p>
         </div>
         <div class="architecture-shell">
           <ol class="architecture" aria-label="GraduateChat 系统架构">
-            <li class="flow-step"><strong>多端客户端</strong><span>Vue 3 + Tauri 2<br>桌面、移动与浏览器调试</span></li>
-            <li class="flow-step"><strong>通信边界</strong><span>REST 业务接口<br>WebSocket 通知<br>SSE AI 流式输出</span></li>
-            <li class="flow-step"><strong>Java 业务服务</strong><span>账号与关系<br>会话与消息<br>云盘与分享<br>AI 会话</span></li>
-            <li class="flow-step"><strong>数据与事件</strong><span>MySQL 持久状态<br>Redis 在线状态<br>Kafka 异步事件<br>MinIO 文件对象</span></li>
+            <li class="flow-step">
+              <strong>多端客户端</strong>
+              <p>Vue 3 与 Tauri 2，覆盖桌面端、移动端和浏览器调试。</p>
+            </li>
+            <li class="flow-step">
+              <strong>通信边界</strong>
+              <p>REST 处理业务请求，WebSocket 推送通知，SSE 输出 AI 回复。</p>
+            </li>
+            <li class="flow-step">
+              <strong>Java 业务服务</strong>
+              <p>管理账号关系、会话消息、文件分享和 AI 会话。</p>
+            </li>
+            <li class="flow-step">
+              <strong>数据与事件</strong>
+              <p>MySQL、Redis、Kafka 与 MinIO 分别承载状态、事件和文件。</p>
+            </li>
           </ol>
           <div class="architecture-note">
-            <p><strong>音视频：</strong>服务端负责身份校验和信令转发，媒体尽量由终端通过 WebRTC 直接传输。</p>
-            <p><strong>离线恢复：</strong>在线连接负责及时提醒，最终恢复依赖持久事件、设备游标和幂等合并。</p>
+            <p><strong>音视频：</strong>服务端完成身份校验和信令转发，媒体尽量由终端通过 WebRTC 直接传输。</p>
+            <p><strong>离线恢复：</strong>在线连接用于提醒，最终恢复依赖持久事件、设备游标和幂等合并。</p>
           </div>
         </div>
       </div>
@@ -369,29 +373,29 @@
     <section id="engineering" aria-labelledby="engineering-title">
       <div class="container">
         <div class="section-heading">
-          <h2 id="engineering-title">三个关键工程问题</h2>
-          <p>简历中的技术点对应真实问题、设计选择和可以验收的系统行为。</p>
+          <h2 id="engineering-title">关键工程设计</h2>
+          <p>技术选择围绕真实业务问题展开，每项设计都有明确的系统结果。</p>
         </div>
         <div class="engineering-list">
           <article class="engineering-item">
             <h3>消息重复与断线恢复</h3>
             <div>
-              <p>客户端为一次发送保留稳定消息号，服务端先幂等落库，再异步投递。在线设备通过 WebSocket 及时获知新消息，断线设备按持久事件和游标补拉。</p>
-              <p class="result">结果：弱网重试不会因为重新生成编号而重复入库，换端或重连后仍可继续恢复未消费事件。</p>
+              <p>客户端为一次发送保留稳定消息号，服务端先幂等落库，再异步投递。在线设备通过 WebSocket 收到提醒，断线设备按持久事件和游标补拉。</p>
+              <p class="result">结果：弱网重试不会重复入库，换端或重连后仍可恢复未消费事件。</p>
             </div>
           </article>
           <article class="engineering-item">
             <h3>文件对象与业务状态</h3>
             <div>
-              <p>MySQL 保存文件元数据、容量和引用关系，MinIO 保存对象内容。聊天文件与云盘文件使用不同的访问入口，上传或转存失败时执行补偿清理。</p>
-              <p class="result">结果：支持聊天文件转存和受控分享，同时降低孤儿对象、错误鉴权入口和重复存储造成的数据问题。</p>
+              <p>MySQL 保存文件元数据、容量和引用关系，MinIO 保存对象内容。聊天文件与云盘文件采用不同访问入口，上传或转存失败时执行补偿清理。</p>
+              <p class="result">结果：支持聊天文件转存和受控分享，并降低孤儿对象、错误鉴权和重复存储风险。</p>
             </div>
           </article>
           <article class="engineering-item">
             <h3>AI 上下文与多端同步</h3>
             <div>
-              <p>客户端只从本地消息、收藏和联系人中筛选少量相关上下文，服务端校验会话并通过 SSE 返回增量内容，完成后持久化正式消息。</p>
-              <p class="result">结果：限制无关聊天数据进入模型，上屏过程保持流式体验，正式结果仍能被其他设备同步。</p>
+              <p>客户端从本地消息、收藏和联系人中筛选少量相关上下文，服务端校验会话并通过 SSE 返回增量内容，完成后持久化正式消息。</p>
+              <p class="result">结果：减少无关聊天数据进入模型，保持流式体验，并让正式回复同步到其他设备。</p>
             </div>
           </article>
         </div>
@@ -401,28 +405,28 @@
     <section id="screens" aria-labelledby="screens-title">
       <div class="container">
         <div class="section-heading">
-          <h2 id="screens-title">真实客户端界面</h2>
-          <p>截图覆盖桌面与移动端的聊天、云盘和视频通话，展示同一业务在不同设备上的落地。</p>
+          <h2 id="screens-title">客户端界面</h2>
+          <p>以下图片直接来自项目客户端，覆盖桌面和移动设备上的聊天、云盘与视频通话。</p>
         </div>
         <div class="gallery">
           <div class="gallery-main">
-            <figure class="shot">
+            <figure class="showcase">
+              <h3>桌面云盘</h3>
               <img src="assets/desktop-cloud-drive.png" alt="青语桌面端云盘界面，包含容量、文件列表、预览、下载与分享操作" width="1440" height="900" loading="lazy">
-              <figcaption>桌面云盘：目录、容量、预览、下载与分享。</figcaption>
             </figure>
-            <figure class="shot">
+            <figure class="showcase">
+              <h3>桌面视频通话</h3>
               <img src="assets/desktop-video-call.png" alt="青语桌面端视频通话界面，包含远端画面、本地预览与通话控制" width="1440" height="900" loading="lazy">
-              <figcaption>桌面视频通话：信令状态、远端画面与本地预览。</figcaption>
             </figure>
           </div>
           <div class="gallery-side">
-            <figure class="shot">
+            <figure class="showcase">
+              <h3>移动端聊天</h3>
               <img src="assets/mobile-chat.png" alt="青语 Android 聊天详情界面" width="780" height="1688" loading="lazy">
-              <figcaption>移动端聊天。</figcaption>
             </figure>
-            <figure class="shot">
+            <figure class="showcase">
+              <h3>移动端云盘</h3>
               <img src="assets/mobile-cloud-drive.png" alt="青语 Android 云盘界面" width="780" height="1688" loading="lazy">
-              <figcaption>移动端云盘。</figcaption>
             </figure>
           </div>
         </div>
@@ -432,25 +436,37 @@
     <section id="evidence" aria-labelledby="evidence-title">
       <div class="container">
         <div class="section-heading">
-          <h2 id="evidence-title">如何验证这些实现</h2>
-          <p>公开页不展示私有源代码，但保留可以核对的测试结果、真实截图、构建产物和能力边界。</p>
+          <h2 id="evidence-title">工程验证</h2>
+          <p>测试、构建和安装包均来自本次实际执行结果，不使用估算数据。</p>
         </div>
         <div class="verification-grid">
-          <article class="evidence">
-            <h3>本地验证快照</h3>
-            <ul class="check-list">
-              <li><span><strong>前端类型检查通过</strong><br>Vue 3 + TypeScript 的完整类型检查无错误。</span></li>
-              <li><span><strong>82 个测试文件，349 项测试通过</strong><br>覆盖消息去重、设备游标、通知、媒体访问、AI 上下文与移动端行为。</span></li>
-              <li><span><strong>后端 156 个测试套件，677 项测试通过</strong><br>JUnit 5 与 Mockito 覆盖消息投递、同步事件、文件补偿和基础设施故障边界。</span></li>
-              <li><span><strong>生产构建通过</strong><br>Vite 完成 1417 个模块转换并生成可部署的静态前端产物。</span></li>
-              <li><span><strong>安装包校验一致</strong><br>Windows、macOS、Android 构建产物的 SHA-256 与 Release 元数据一致。</span></li>
-            </ul>
-          </article>
+          <div class="metrics" aria-label="测试与构建结果">
+            <article class="metric">
+              <strong>82 / 349</strong>
+              <h3>前端测试</h3>
+              <p>82 个测试文件，349 项测试通过，并完成 TypeScript 类型检查。</p>
+            </article>
+            <article class="metric">
+              <strong>156 / 677</strong>
+              <h3>后端测试</h3>
+              <p>后端 156 个测试套件，677 项测试通过。</p>
+            </article>
+            <article class="metric">
+              <strong>1417</strong>
+              <h3>生产构建</h3>
+              <p>Vite 完成 1417 个模块转换并生成前端产物。</p>
+            </article>
+            <article class="metric">
+              <strong>3 个平台</strong>
+              <h3>安装包校验</h3>
+              <p>Windows、macOS、Android 产物的 SHA-256 与 Release 元数据一致。</p>
+            </article>
+          </div>
           <aside class="boundary">
-            <h3>公开边界</h3>
-            <p>公司项目、私有仓库、密钥、数据库数据和内部接口不会出现在本页面。</p>
-            <p>安装包用于查看客户端构建成果。聊天、云盘、AI 和通话需要配套 Java 后端与基础设施，当前不提供公共在线服务。</p>
-            <p>所有数字均来自本次实际测试或构建输出，不使用估算的并发量、准确率或性能提升。</p>
+            <h3>公开范围</h3>
+            <p>本页面只展示脱敏项目说明、客户端截图、测试结果和安装包，不公开当前私有源代码。</p>
+            <p>聊天、云盘、AI 和通话需要配套 Java 后端与基础设施，当前不提供公共在线服务。</p>
+            <p>公司项目、密钥、数据库数据和内部接口不在公开范围内。</p>
           </aside>
         </div>
       </div>
@@ -459,31 +475,39 @@
     <section id="downloads" aria-labelledby="downloads-title">
       <div class="container">
         <div class="section-heading">
-          <h2 id="downloads-title">客户端构建产物</h2>
-          <p>三个平台均提供独立安装包。首次打开可查看客户端界面，完整业务功能需要本地后端。</p>
+          <h2 id="downloads-title">客户端安装包</h2>
+          <p>安装包可用于查看客户端构建成果，完整业务功能需要本地后端。</p>
         </div>
         <div class="downloads">
           <article class="download-item">
-            <div><h3>macOS</h3><p>DMG 安装包，Apple Silicon 构建。</p></div>
+            <div>
+              <h3>macOS</h3>
+              <p>Apple Silicon DMG 安装包。</p>
+            </div>
             <a class="button download-link" data-public-download href="https://github.com/maxxvll/resume-ai-demo/releases/download/graduatechat-v0.1.0/Qingyu_0.1.0_macos.dmg">下载 DMG</a>
           </article>
           <article class="download-item">
-            <div><h3>Windows</h3><p>x64 桌面安装器。</p></div>
+            <div>
+              <h3>Windows</h3>
+              <p>x64 桌面安装器。</p>
+            </div>
             <a class="button download-link" data-public-download href="https://github.com/maxxvll/resume-ai-demo/releases/download/graduatechat-v0.1.0/Qingyu_0.1.0_windows_x64_setup.exe">下载 EXE</a>
           </article>
           <article class="download-item android">
-            <div><h3>Android</h3><p>arm64 APK，适用于真实设备安装验证。</p></div>
+            <div>
+              <h3>Android</h3>
+              <p>arm64 APK，适用于真实设备安装。</p>
+            </div>
             <a class="button download-link" data-public-download href="https://github.com/maxxvll/resume-ai-demo/releases/download/graduatechat-v0.1.0/Qingyu_0.1.0_android_arm64.apk">下载 APK</a>
           </article>
         </div>
-        <p class="release-note">发布说明：公开仓库仅承载脱敏项目说明、真实截图和安装包，不公开当前私有源代码。安装前可在 GitHub Release 页面核对 SHA-256。</p>
       </div>
     </section>
   </main>
 
   <footer>
     <div class="container footer-inner">
-      <p>GraduateChat 项目说明。内容基于实际代码、测试和构建产物。</p>
+      <p>青语 GraduateChat</p>
       <p><a href="https://github.com/maxxvll" target="_blank" rel="noopener noreferrer">GitHub @maxxvll</a></p>
     </div>
   </footer>

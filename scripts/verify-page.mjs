@@ -65,6 +65,10 @@ for (const banned of ['AWS_ACCESS_KEY', 'SECRET_KEY', 'PRIVATE_KEY', 'sk-', 'Bea
   if (html.includes(banned) || readme.includes(banned)) failures.push(`prohibited public text: ${banned}`);
 }
 
+if (/<span\b/i.test(html)) failures.push('visible helper fragments must not use span elements');
+if (/font-size:\s*(12|13)px/.test(html)) failures.push('micro-copy below 14px is not allowed');
+if (/class="[^"]*(eyebrow|caption)[^"]*"/.test(html)) failures.push('decorative eyebrow or caption copy is not allowed');
+
 if ((html.match(/<html\b/g) || []).length !== 1) failures.push('index.html must contain exactly one document');
 if (!html.includes('@media (prefers-color-scheme: dark)')) failures.push('missing automatic dark mode');
 if (!html.includes('@media (prefers-reduced-motion: reduce)')) failures.push('missing reduced motion handling');
